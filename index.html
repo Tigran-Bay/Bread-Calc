@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Bread Calc">
-  <title>Bread Recipe Calculator</title>
+  <meta name="apple-mobile-web-app-title" content="Bread Scale">
+  <title>King Arthur Bread Scaler</title>
   <style>
     :root {
       --bg: #121212;
       --card: #1e1e1e;
-      --accent: #d97706;
+      --accent: #eab308;
       --text: #f3f4f6;
       --subtext: #9ca3af;
       --border: #2d2d2d;
@@ -24,39 +24,33 @@
       margin: 0;
       padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
     }
-    h1 { font-size: 1.4rem; text-align: center; margin: 12px 0 18px; color: var(--accent); }
+    h1 { font-size: 1.3rem; text-align: center; margin: 12px 0 16px; color: var(--accent); }
     .card {
       background: var(--card);
       border-radius: 14px;
       padding: 16px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       border: 1px solid var(--border);
     }
-    .field {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .field:last-child { margin-bottom: 0; }
-    label { font-size: 0.95rem; color: var(--subtext); }
-    .val-display { font-weight: 600; font-size: 1rem; color: var(--accent); }
-    input[type=range] {
+    .field { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    label { font-size: 0.9rem; color: var(--subtext); }
+    .val-display { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
+    select, input[type=number], input[type=text] {
+      background: #2a2a2a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.95rem;
       width: 100%;
-      accent-color: var(--accent);
-      margin: 8px 0 4px;
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-    th { text-align: left; font-size: 0.75rem; color: var(--subtext); text-transform: uppercase; padding-bottom: 8px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); margin: 8px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; font-size: 0.75rem; color: var(--subtext); text-transform: uppercase; padding-bottom: 6px; }
     td { padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.95rem; }
     .grams { text-align: right; font-weight: 700; color: #fff; }
     .pct { text-align: center; color: var(--subtext); font-size: 0.85rem; }
-    .presets {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-top: 8px;
-    }
+    .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
     .btn {
       background: #2a2a2a;
       border: 1px solid var(--border);
@@ -67,13 +61,35 @@
       font-weight: 600;
     }
     .btn:active { background: var(--accent); color: #000; }
+    .raw-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+    .btn-del { background: #7f1d1d; border: none; color: white; border-radius: 6px; padding: 0 10px; }
   </style>
 </head>
 <body>
 
-  <h1>BakeCalc</h1>
+  <h1>King Arthur Bread Scaler</h1>
 
-  <!-- Target Weight Control -->
+  <!-- Recipe Selection -->
+  <div class="card">
+    <label style="display:block; margin-bottom: 6px;">Select Recipe</label>
+    <select id="recipeSelect" onchange="loadPreset()">
+      <option value="sandwich">KA Classic Sandwich Bread</option>
+      <option value="french">KA French Bread / Baguette</option>
+      <option value="sourdough">KA Rustic Sourdough</option>
+      <option value="custom">Custom Recipe (From Book)...</option>
+    </select>
+  </div>
+
+  <!-- Custom Entry Section (Hidden unless "Custom" is chosen) -->
+  <div class="card" id="customInputCard" style="display: none;">
+    <div style="font-size: 0.85rem; color: var(--subtext); margin-bottom: 10px;">
+      Enter ingredient weights directly from the book (must include Flour):
+    </div>
+    <div id="ingredientRows"></div>
+    <button class="btn" style="width: 100%; margin-top: 6px;" onclick="addRow()">+ Add Ingredient</button>
+  </div>
+
+  <!-- Target Total Weight Control -->
   <div class="card">
     <div class="field">
       <label>Target Dough Weight</label>
@@ -88,28 +104,7 @@
     </div>
   </div>
 
-  <!-- Baker's Percentages Configuration -->
-  <div class="card">
-    <div class="field">
-      <label>Hydration (Water)</label>
-      <span class="val-display" id="waterVal">68%</span>
-    </div>
-    <input type="range" id="hydration" min="50" max="85" step="1" value="68">
-
-    <div class="field" style="margin-top: 10px;">
-      <label>Salt</label>
-      <span class="val-display" id="saltVal">2.0%</span>
-    </div>
-    <input type="range" id="salt" min="1.0" max="3.0" step="0.1" value="2.0">
-
-    <div class="field" style="margin-top: 10px;">
-      <label>Yeast / Starter</label>
-      <span class="val-display" id="yeastVal">1.0%</span>
-    </div>
-    <input type="range" id="yeast" min="0.2" max="20.0" step="0.2" value="1.0">
-  </div>
-
-  <!-- Results Breakdown -->
+  <!-- Scaled Formula Table -->
   <div class="card">
     <table>
       <thead>
@@ -119,54 +114,147 @@
           <th style="text-align: right;">Grams</th>
         </tr>
       </thead>
-      <tbody id="ingredientsBody">
-        <!-- Rendered via JS -->
-      </tbody>
+      <tbody id="recipeTable"></tbody>
     </table>
   </div>
 
   <script>
-    const targetWeight = document.getElementById('targetWeight');
-    const hydration = document.getElementById('hydration');
-    const salt = document.getElementById('salt');
-    const yeast = document.getElementById('yeast');
+    const PRESETS = {
+      sandwich: [
+        { name: "Unbleached Bread Flour", grams: 360, isFlour: true },
+        { name: "Water (or Milk)", grams: 226, isFlour: false },
+        { name: "Butter (softened)", grams: 28, isFlour: false },
+        { name: "Sugar or Honey", grams: 21, isFlour: false },
+        { name: "Salt", grams: 7, isFlour: false },
+        { name: "Instant Yeast", grams: 5, isFlour: false }
+      ],
+      french: [
+        { name: "All-Purpose Flour", grams: 420, isFlour: true },
+        { name: "Water", grams: 283, isFlour: false },
+        { name: "Salt", grams: 9, isFlour: false },
+        { name: "Instant Yeast", grams: 3, isFlour: false }
+      ],
+      sourdough: [
+        { name: "Bread Flour", grams: 360, isFlour: true },
+        { name: "Whole Wheat Flour", grams: 60, isFlour: true },
+        { name: "Water", grams: 300, isFlour: false },
+        { name: "Ripe Sourdough Starter", grams: 120, isFlour: false },
+        { name: "Salt", grams: 9, isFlour: false }
+      ]
+    };
 
-    function calculate() {
-      const W = parseFloat(targetWeight.value);
-      const H = parseFloat(hydration.value);
-      const S = parseFloat(salt.value);
-      const Y = parseFloat(yeast.value);
+    let activeRecipe = [];
 
-      document.getElementById('weightVal').innerText = W >= 1000 ? (W/1000).toFixed(1) + ' kg' : W + ' g';
-      document.getElementById('waterVal').innerText = H + '%';
-      document.getElementById('saltVal').innerText = S.toFixed(1) + '%';
-      document.getElementById('yeastVal').innerText = Y.toFixed(1) + '%';
+    function loadPreset() {
+      const choice = document.getElementById('recipeSelect').value;
+      const customCard = document.getElementById('customInputCard');
 
-      // Baker's Math: Total % = 100 (Flour) + Hydration + Salt + Yeast
-      const totalPct = 100 + H + S + Y;
-      const flourGrams = Math.round(W * (100 / totalPct));
-      const waterGrams = Math.round(flourGrams * (H / 100));
-      const saltGrams = (flourGrams * (S / 100)).toFixed(1);
-      const yeastGrams = (flourGrams * (Y / 100)).toFixed(1);
+      if (choice === 'custom') {
+        customCard.style.display = 'block';
+        if (activeRecipe.length === 0) {
+          activeRecipe = [
+            { name: "Flour", grams: 500, isFlour: true },
+            { name: "Water", grams: 350, isFlour: false },
+            { name: "Salt", grams: 10, isFlour: false }
+          ];
+        }
+        renderCustomInputs();
+      } else {
+        customCard.style.display = 'none';
+        activeRecipe = JSON.parse(JSON.stringify(PRESETS[choice]));
+      }
+      recalculate();
+    }
 
-      document.getElementById('ingredientsBody').innerHTML = `
-        <tr><td>Flour</td><td class="pct">100%</td><td class="grams">${flourGrams} g</td></tr>
-        <tr><td>Water</td><td class="pct">${H}%</td><td class="grams">${waterGrams} g</td></tr>
-        <tr><td>Salt</td><td class="pct">${S.toFixed(1)}%</td><td class="grams">${saltGrams} g</td></tr>
-        <tr><td>Yeast / Starter</td><td class="pct">${Y.toFixed(1)}%</td><td class="grams">${yeastGrams} g</td></tr>
+    function renderCustomInputs() {
+      const container = document.getElementById('ingredientRows');
+      container.innerHTML = '';
+      activeRecipe.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'raw-row';
+        row.innerHTML = `
+          <input type="text" value="${item.name}" placeholder="Name" onchange="updateCustomName(${index}, this.value)">
+          <input type="number" value="${item.grams}" placeholder="g" onchange="updateCustomGrams(${index}, this.value)">
+          <button class="btn-del" onclick="deleteRow(${index})">✕</button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addRow() {
+      activeRecipe.push({ name: "Ingredient", grams: 50, isFlour: false });
+      renderCustomInputs();
+      recalculate();
+    }
+
+    function deleteRow(idx) {
+      activeRecipe.splice(idx, 1);
+      renderCustomInputs();
+      recalculate();
+    }
+
+    function updateCustomName(idx, val) {
+      activeRecipe[idx].name = val;
+      activeRecipe[idx].isFlour = /flour/i.test(val);
+      recalculate();
+    }
+
+    function updateCustomGrams(idx, val) {
+      activeRecipe[idx].grams = parseFloat(val) || 0;
+      recalculate();
+    }
+
+    function setWeight(val) {
+      document.getElementById('targetWeight').value = val;
+      recalculate();
+    }
+
+    function recalculate() {
+      const target = parseFloat(document.getElementById('targetWeight').value);
+      document.getElementById('weightVal').innerText = target >= 1000 ? (target/1000).toFixed(1) + ' kg' : target + ' g';
+
+      // 1. Identify total original recipe flour weight
+      let totalFlour = activeRecipe.reduce((sum, item) => sum + (item.isFlour ? item.grams : 0), 0);
+      if (totalFlour === 0) totalFlour = activeRecipe[0]?.grams || 1; // Fallback if no item called flour
+
+      // 2. Compute Baker's % and total formula percentage
+      let totalFormulaPct = 0;
+      const computed = activeRecipe.map(item => {
+        const pct = (item.grams / totalFlour) * 100;
+        totalFormulaPct += pct;
+        return { ...item, pct };
+      });
+
+      // 3. Scale based on target total dough weight
+      const scaleFactor = target / totalFormulaPct;
+      let actualTotal = 0;
+
+      const tbody = document.getElementById('recipeTable');
+      tbody.innerHTML = '';
+
+      computed.forEach(item => {
+        const scaledGrams = Math.round(item.pct * scaleFactor);
+        actualTotal += scaledGrams;
+        tbody.innerHTML += `
+          <tr>
+            <td>${item.name}</td>
+            <td class="pct">${Math.round(item.pct)}%</td>
+            <td class="grams">${scaledGrams} g</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML += `
         <tr style="color: var(--accent); font-weight: bold;">
-          <td>Total Yield</td><td></td><td class="grams">${Math.round(flourGrams + waterGrams + parseFloat(saltGrams) + parseFloat(yeastGrams))} g</td>
+          <td>Total Yield</td>
+          <td></td>
+          <td class="grams">${actualTotal} g</td>
         </tr>
       `;
     }
 
-    function setWeight(val) {
-      targetWeight.value = val;
-      calculate();
-    }
-
-    [targetWeight, hydration, salt, yeast].forEach(el => el.addEventListener('input', calculate));
-    calculate();
+    document.getElementById('targetWeight').addEventListener('input', recalculate);
+    loadPreset();
   </script>
 </body>
 </html>
