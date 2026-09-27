@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bread Calc">
+  <title>Bread Recipe Calculator</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --accent: #d97706;
+      --text: #f3f4f6;
+      --subtext: #9ca3af;
+      --border: #2d2d2d;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+    }
+    h1 { font-size: 1.4rem; text-align: center; margin: 12px 0 18px; color: var(--accent); }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .field:last-child { margin-bottom: 0; }
+    label { font-size: 0.95rem; color: var(--subtext); }
+    .val-display { font-weight: 600; font-size: 1rem; color: var(--accent); }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin: 8px 0 4px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th { text-align: left; font-size: 0.75rem; color: var(--subtext); text-transform: uppercase; padding-bottom: 8px; }
+    td { padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.95rem; }
+    .grams { text-align: right; font-weight: 700; color: #fff; }
+    .pct { text-align: center; color: var(--subtext); font-size: 0.85rem; }
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn {
+      background: #2a2a2a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 0;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .btn:active { background: var(--accent); color: #000; }
+  </style>
+</head>
+<body>
+
+  <h1>BakeCalc</h1>
+
+  <!-- Target Weight Control -->
+  <div class="card">
+    <div class="field">
+      <label>Target Dough Weight</label>
+      <span class="val-display" id="weightVal">500 g</span>
+    </div>
+    <input type="range" id="targetWeight" min="200" max="1000" step="10" value="500">
+    <div class="presets">
+      <button class="btn" onclick="setWeight(250)">250g</button>
+      <button class="btn" onclick="setWeight(500)">500g</button>
+      <button class="btn" onclick="setWeight(750)">750g</button>
+      <button class="btn" onclick="setWeight(1000)">1kg</button>
+    </div>
+  </div>
+
+  <!-- Baker's Percentages Configuration -->
+  <div class="card">
+    <div class="field">
+      <label>Hydration (Water)</label>
+      <span class="val-display" id="waterVal">68%</span>
+    </div>
+    <input type="range" id="hydration" min="50" max="85" step="1" value="68">
+
+    <div class="field" style="margin-top: 10px;">
+      <label>Salt</label>
+      <span class="val-display" id="saltVal">2.0%</span>
+    </div>
+    <input type="range" id="salt" min="1.0" max="3.0" step="0.1" value="2.0">
+
+    <div class="field" style="margin-top: 10px;">
+      <label>Yeast / Starter</label>
+      <span class="val-display" id="yeastVal">1.0%</span>
+    </div>
+    <input type="range" id="yeast" min="0.2" max="20.0" step="0.2" value="1.0">
+  </div>
+
+  <!-- Results Breakdown -->
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Ingredient</th>
+          <th style="text-align: center;">%</th>
+          <th style="text-align: right;">Grams</th>
+        </tr>
+      </thead>
+      <tbody id="ingredientsBody">
+        <!-- Rendered via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const targetWeight = document.getElementById('targetWeight');
+    const hydration = document.getElementById('hydration');
+    const salt = document.getElementById('salt');
+    const yeast = document.getElementById('yeast');
+
+    function calculate() {
+      const W = parseFloat(targetWeight.value);
+      const H = parseFloat(hydration.value);
+      const S = parseFloat(salt.value);
+      const Y = parseFloat(yeast.value);
+
+      document.getElementById('weightVal').innerText = W >= 1000 ? (W/1000).toFixed(1) + ' kg' : W + ' g';
+      document.getElementById('waterVal').innerText = H + '%';
+      document.getElementById('saltVal').innerText = S.toFixed(1) + '%';
+      document.getElementById('yeastVal').innerText = Y.toFixed(1) + '%';
+
+      // Baker's Math: Total % = 100 (Flour) + Hydration + Salt + Yeast
+      const totalPct = 100 + H + S + Y;
+      const flourGrams = Math.round(W * (100 / totalPct));
+      const waterGrams = Math.round(flourGrams * (H / 100));
+      const saltGrams = (flourGrams * (S / 100)).toFixed(1);
+      const yeastGrams = (flourGrams * (Y / 100)).toFixed(1);
+
+      document.getElementById('ingredientsBody').innerHTML = `
+        <tr><td>Flour</td><td class="pct">100%</td><td class="grams">${flourGrams} g</td></tr>
+        <tr><td>Water</td><td class="pct">${H}%</td><td class="grams">${waterGrams} g</td></tr>
+        <tr><td>Salt</td><td class="pct">${S.toFixed(1)}%</td><td class="grams">${saltGrams} g</td></tr>
+        <tr><td>Yeast / Starter</td><td class="pct">${Y.toFixed(1)}%</td><td class="grams">${yeastGrams} g</td></tr>
+        <tr style="color: var(--accent); font-weight: bold;">
+          <td>Total Yield</td><td></td><td class="grams">${Math.round(flourGrams + waterGrams + parseFloat(saltGrams) + parseFloat(yeastGrams))} g</td>
+        </tr>
+      `;
+    }
+
+    function setWeight(val) {
+      targetWeight.value = val;
+      calculate();
+    }
+
+    [targetWeight, hydration, salt, yeast].forEach(el => el.addEventListener('input', calculate));
+    calculate();
+  </script>
+</body>
+</html>
